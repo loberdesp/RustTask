@@ -11,30 +11,56 @@ struct ExchangeRates {
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
 
-    let mut input = String::new();
-    match io::stdin().read_line(&mut input) {
+
+
+
+    let mut cur_from = String::new();
+    println!("Enter base currency: ");
+    match io::stdin().read_line(&mut cur_from) {
         Ok(n) => {
             println!("{} bytes read", n);
         }
         Err(error) => println!("error: {error}"),
     }
 
-    let link = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/";
+    println!("Output currency: ");
+    let mut cur_to = String::new();
+    match io::stdin().read_line(&mut cur_to) {
+        Ok(n) => {
+            println!("{} bytes read", n);
+        }
+        Err(error) => println!("error: {error}"),
+    }
 
+    let cur_from = cur_from.trim();
+    let cur_to = cur_to.trim();
+
+    println!("Value to be converted: ");
+
+    let mut input_line = String::new();
+    io::stdin()
+        .read_line(&mut input_line)
+        .expect("Failed to read line");
+    let value: f64 = input_line
+        .trim()
+        .parse()
+        .expect("Input not an integer");
+
+    let mut link = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/".to_string();
+
+    link.push_str(&cur_from);
 
     let body : ExchangeRates = reqwest::Client::new()
-    .get(link)
-    .send()
-    .await?
-    .json()
-    .await?;
+        .get(link)
+        .send()
+        .await?
+        .json()
+        .await?;
 
-    //println!("{:#?}", body);
-
-    if let Some(usd_exchange_rate) = body.conversion_rates.get("USD") {
-        println!("Exchange rate for USD: {}", usd_exchange_rate);
+    if let Some(rate) = body.conversion_rates.get(cur_to) {
+        println!("{:.2}", value*rate);
     } else {
-        println!("USD exchange rate not found in the response.");
+        println!("{} exchange rate not found in the response.", cur_to);
     }
 
     Ok(())
