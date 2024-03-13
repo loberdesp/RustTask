@@ -48,7 +48,7 @@ async fn display_currencies() -> Result<std::collections::HashMap<String, f64>, 
 }
 
 fn read_value() -> f64 {
-    print!("Value to be converted: ");
+    print!("Value to be converted (e.g., 14.26): ");
     io::stdout().flush().expect("Failed to flush");
     let mut input_line = String::new();
     io::stdin()
@@ -68,50 +68,58 @@ fn read_value() -> f64 {
     } 
 }
 
+fn is_uppercase(input: &str) -> bool {
+    input.chars().all(char::is_uppercase)
+}
 
-async fn read_inout_code(av: Option<std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error>{
+async fn read_input_code(available_currencies: Option<std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error> {
+
     let mut cur_from = String::new();
-    print!("Enter base currency: ");
-    io::stdout().flush().expect("Failed to flush");
-    io::stdin()
-    .read_line(&mut cur_from)
-    .expect("Failed to read input currency");
-    let cur_from = cur_from.trim();
+    loop {
+        print!("Enter base currency (e.g., USD): ");
+        io::stdout().flush().expect("Failed to flush base currency");
+        io::stdin().read_line(&mut cur_from).expect("Failed to read input currency");
+        cur_from = cur_from.trim().to_string();
+
+        if is_uppercase(&cur_from) {
+            break;
+        } else {
+            println!("Invalid input. It should only contain upper case characters!");
+            cur_from.clear();
+        }
+    }
+    
 
     let mut cur_to = String::new();
-    print!("Enter output currency: ");
-    io::stdout().flush().expect("Failed to flush");
-    io::stdin()
-    .read_line(&mut cur_to)
-    .expect("Failed to read output currency");
-    let cur_to = cur_to.trim();
+    loop {
+        print!("Enter output currency (e.g., GBP): ");
+        io::stdout().flush().expect("Failed to flush output currency");
+        io::stdin().read_line(&mut cur_to).expect("Failed to read output currency");
+        cur_to = cur_to.trim().to_string();
 
-    if let Some(v) = av {
+        if is_uppercase(&cur_to) {
+            break;
+        } else {
+            println!("Invalid input. It should only contain upper case characters!");
+            cur_to.clear();
+        }
+    }
+    
+
+    if let Some(currency_rates) = available_currencies {
         let num = read_value();
-        if num!=-1.0 {
-            if !v.is_empty() {
-                if v.contains_key(&cur_from.to_string()) && v.contains_key(&cur_to.to_string()) {
-                    let ab = v.get(&cur_from.to_string());
-                    match ab {
-                        Some(m) => {
-                            if *m==1.0 {
-                                if let Some(rate) = v.get(&cur_to.to_string()) {
-                                    non_api_convert(cur_from.to_string(), cur_to.to_string(), num, *rate);
-                                } else {
-                                    println!("Error: Currency not found in the HashMap");
-                                }
-                            } else {
-                                api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
-                            }
+        if num != -1.0 {
+            if !currency_rates.is_empty() {
+                match (currency_rates.get(&cur_from), currency_rates.get(&cur_to)) {
+                    (Some(rate_from), Some(rate_to)) => {
+                        if *rate_from == 1.0 {
+                            non_api_convert(cur_from.to_string(), cur_to.to_string(), num, *rate_to);
+                        } else {
+                            api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
                         }
-                        None => {}
                     }
-                } else if v.contains_key(&cur_to.to_string()) {
-                    println!("Invalid input currency code: {}", cur_from);
-                } else if v.contains_key(&cur_from.to_string()) {
-                    println!("Invalid output currency code: {}", cur_to);
-                } else {
-                    println!("Invalid input & output currency code!");
+                    (None, _) => println!("Invalid input currency code: {}", cur_from),
+                    (_, None) => println!("Invalid output currency code: {}", cur_to),
                 }
             } else {
                 api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
@@ -213,7 +221,7 @@ async fn main() -> Result<(), reqwest::Error> {
                 curs = display_currencies().await?;
             }
             1 => {
-                read_inout_code(Some(curs.clone())).await?;
+                read_input_code(Some(curs.clone())).await?;
             }
             2 => {
                 println!("Exiting program!");
