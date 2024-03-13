@@ -1,6 +1,7 @@
 use reqwest;
 use serde::{Serialize, Deserialize};
 use std::io;
+use std::io::Write;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -19,66 +20,40 @@ struct ErrorResponse {
 }
 
 
-#[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
+#[derive(Debug, Serialize, Deserialize)]
+struct SupportedList {
+    supported_codes: Vec<Vec<String>>,
+}
 
 
+async fn display_currencies() -> Result<std::collections::HashMap<String, f64>, reqwest::Error> {
+    let list_link = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/USD";
+        let list_response = reqwest::Client::new().get(list_link).send().await;
+        let mut xs:  std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+        match list_response {
+            Ok(res) => {
+                if res.status().is_success() {
+                    let list_body: ExchangeRates = res.json().await?;
+                    xs = list_body.conversion_rates.clone();
+                    for (key, value) in list_body.conversion_rates {
+                        println!("Code: {}, Rate: {}", key, value);
+                    }
+                }
+            }
+            Err(err) => {
+                eprintln!("Failed to parse currencies: {}", err);
+            }
+        }
+    Ok(xs)
+}
 
-    let mut cur_from = String::new();
-    println!("Enter base currency: ");
-    io::stdin()
-    .read_line(&mut cur_from)
-    .expect("Failed to read input currency");
-
-    let cur_from = cur_from.trim();
-
-    let base = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/".to_string();
-
-    //ownership transfer usage
-    let link = base + cur_from;
-
-
-
-
-
-    println!("Enter menu option: ");
-    let mut menu = String::new();
-    io::stdin()
-        .read_line(&mut menu)
-        .expect("Failed to read menu option");
-
-
-    let _m_value: f64 = menu
-        .trim()
-        .parse()
-        .expect("Invalid option");
-
-
-
-
-
-
-
-
-
-    let mut cur_to = String::new();
-    println!("Enter output currency: ");
-    io::stdin()
-    .read_line(&mut cur_to)
-    .expect("Falied to read output currency");
-
-
-    
-    let cur_to = cur_to.trim();
-
-
-
-    println!("Value to be converted: ");
+fn read_value() -> f64 {
+    print!("Value to be converted: ");
+    io::stdout().flush().expect("Failed to flush");
     let mut input_line = String::new();
     io::stdin()
         .read_line(&mut input_line)
         .expect("Failed to read line");
-
 
     let value: f64 = input_line
         .trim()
@@ -86,13 +61,63 @@ async fn main() -> Result<(), reqwest::Error> {
         .expect("Input not an integer");
 
     if value<=0.0 {
-        println!("Value less or equal to 0. Aborted");
-        return Ok(());
+        println!("Value less or equal to 0, enter valid value");
+        return -1.0;
+    } else {
+        return value;
     }
-
-
-
     
+}
+
+
+async fn read_inout_code(av: Option<std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error>{
+    let mut cur_from = String::new();
+    print!("Enter base currency: ");
+    io::stdout().flush().expect("Failed to flush");
+    io::stdin()
+    .read_line(&mut cur_from)
+    .expect("Failed to read input currency");
+    let cur_from = cur_from.trim();
+
+    let mut cur_to = String::new();
+    print!("Enter output currency: ");
+    io::stdout().flush().expect("Failed to flush");
+    io::stdin()
+    .read_line(&mut cur_to)
+    .expect("Failed to read output currency");
+    let cur_to = cur_to.trim();
+
+    if let Some(v) = av {
+        let num = read_value();
+        if num!=-1.0 {
+            if !v.is_empty() {
+                if v.contains_key(&cur_from.to_string()) && v.contains_key(&cur_to.to_string()) {
+                    api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
+                } else if v.contains_key(&cur_to.to_string()) {
+                    println!("Invalid input currency code: {}", cur_from);
+                } else if v.contains_key(&cur_from.to_string()) {
+                    println!("Invalid output currency code: {}", cur_to);
+                } else {
+                    println!("Invalid input & output currency code!");
+                }
+            } else {
+                api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
+            }
+        }
+    }
+    Ok(())
+}
+
+
+
+
+
+async fn api_convert(from: String, to: String, amount: f64) -> Result<(), reqwest::Error> {
+
+    let base = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/".to_string();
+
+    let link = base + &from;
+
     let mut retry_counter = 0;
 
     loop {
@@ -102,11 +127,11 @@ async fn main() -> Result<(), reqwest::Error> {
             Ok(res) => {
                 if res.status().is_success() {
                     let body: ExchangeRates = res.json().await?;
-                    if let Some(rate) = body.conversion_rates.get(cur_to) {
-                        println!("{} {} exchanged with {} rate is {:.2} {}", value, cur_from, rate, value*rate, cur_to);
+                    if let Some(rate) = body.conversion_rates.get(&to) {
+                        println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount*rate, &to);
                         break;
                     } else {
-                        println!("Error: Invalid output currency: {}", cur_to);
+                        println!("Error: Invalid output currency: {}", &to);
                         break;
                     }
                 } else if res.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
@@ -122,15 +147,14 @@ async fn main() -> Result<(), reqwest::Error> {
                         return Ok(());
                     }
                 } else {
-                    print!("Error: ");
                     let error_body : ErrorResponse = res.json().await?;
                     match error_body.error_type.as_ref() {
-                        "unsupported-code" =>print!("Invalid input currency code: {}", cur_from),
-                        "malformed-request" =>print!("Invalid request structure"),
-                        "invalid-key" =>print!("Invalid API key"),
-                        "inactive-account" =>print!("Inactive account (email address not confirmed)"),
-                        "quota-reached" =>print!("Limit of account's requests exceeded"),
-                        _=>print!("Unknown error code"),
+                        "unsupported-code" =>println!("Error: Invalid input currency code: {}", &from),
+                        "malformed-request" =>println!("Error: Invalid request structure"),
+                        "invalid-key" =>println!("Error: Invalid API key"),
+                        "inactive-account" =>println!("Error: Inactive account (email address not confirmed)"),
+                        "quota-reached" =>println!("Error: Limit of account's requests exceeded"),
+                        _=>println!("Error: Unknown error code"),
                     }
                     return Ok(());
                 }
@@ -138,6 +162,51 @@ async fn main() -> Result<(), reqwest::Error> {
             Err(_err) => {
                 eprintln!("Error: Network error");
                 return Ok(());
+            }
+        }
+    }
+    Ok(())
+}
+
+
+
+#[tokio::main]
+async fn main() -> Result<(), reqwest::Error> {
+
+    let mut curs: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+
+    loop {
+        println!("------------------------------- MENU -------------------------------");
+        println!("0 - List all available currencies and exchange rates (for US dollar)");
+        println!("1 - Enter base currency (the one you convert from)");
+        println!("2 - Exit program");
+        print!("Enter option: ");
+        io::stdout().flush().expect("Failed to flush menu");
+        
+        let mut menu = String::new();
+        io::stdin()
+            .read_line(&mut menu)
+            .expect("Failed to read menu option");
+
+        let m_value: i32 = menu
+            .trim()
+            .parse()
+            .expect("Input isn't a valid menu option");
+
+
+        match m_value {
+            0 => {
+                curs = display_currencies().await?;
+            }
+            1 => {
+                read_inout_code(Some(curs.clone())).await?;
+            }
+            2 => {
+                println!("Exiting program!");
+                break;
+            }
+            _ => {
+                println!("Input isn't a valid menu option");
             }
         }
     }
