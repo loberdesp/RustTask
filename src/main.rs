@@ -65,8 +65,7 @@ fn read_value() -> f64 {
         return -1.0;
     } else {
         return value;
-    }
-    
+    } 
 }
 
 
@@ -92,7 +91,21 @@ async fn read_inout_code(av: Option<std::collections::HashMap<String, f64>>) -> 
         if num!=-1.0 {
             if !v.is_empty() {
                 if v.contains_key(&cur_from.to_string()) && v.contains_key(&cur_to.to_string()) {
-                    api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
+                    let ab = v.get(&cur_from.to_string());
+                    match ab {
+                        Some(m) => {
+                            if *m==1.0 {
+                                if let Some(rate) = v.get(&cur_to.to_string()) {
+                                    non_api_convert(cur_from.to_string(), cur_to.to_string(), num, *rate);
+                                } else {
+                                    println!("Error: Currency not found in the HashMap");
+                                }
+                            } else {
+                                api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
+                            }
+                        }
+                        None => {}
+                    }
                 } else if v.contains_key(&cur_to.to_string()) {
                     println!("Invalid input currency code: {}", cur_from);
                 } else if v.contains_key(&cur_from.to_string()) {
@@ -109,7 +122,9 @@ async fn read_inout_code(av: Option<std::collections::HashMap<String, f64>>) -> 
 }
 
 
-
+fn non_api_convert(from: String, to: String, amount: f64, rate: f64) {
+    println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount*rate, &to);
+}
 
 
 async fn api_convert(from: String, to: String, amount: f64) -> Result<(), reqwest::Error> {
@@ -117,7 +132,6 @@ async fn api_convert(from: String, to: String, amount: f64) -> Result<(), reqwes
     let base = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/".to_string();
 
     let link = base + &from;
-
     let mut retry_counter = 0;
 
     loop {
