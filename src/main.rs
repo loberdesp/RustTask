@@ -26,15 +26,23 @@ struct SupportedList {
 }
 
 
-async fn display_currencies() -> Result<std::collections::HashMap<String, f64>, reqwest::Error> {
+async fn display_currencies(m: &mut Option<std::collections::HashMap<String, std::collections::HashMap<String, f64>>>) -> Result<(), reqwest::Error> {
     let list_link = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/USD";
         let list_response = reqwest::Client::new().get(list_link).send().await;
-        let mut xs:  std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+
+        
+
+
         match list_response {
             Ok(res) => {
                 if res.status().is_success() {
                     let list_body: ExchangeRates = res.json().await?;
-                    xs = list_body.conversion_rates.clone();
+
+                    if let Some(map) = m {
+                        map.insert("USD".to_string(), list_body.conversion_rates.clone());
+                    }
+
+
                     for (key, value) in list_body.conversion_rates {
                         println!("Code: {}, Rate: {}", key, value);
                     }
@@ -44,7 +52,7 @@ async fn display_currencies() -> Result<std::collections::HashMap<String, f64>, 
                 eprintln!("Failed to parse currencies: {}", err);
             }
         }
-    Ok(xs)
+    Ok(())
 }
 
 fn read_value() -> f64 {
@@ -72,7 +80,7 @@ fn is_uppercase(input: &str) -> bool {
     input.chars().all(char::is_uppercase)
 }
 
-async fn read_input_code(available_currencies: Option<std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error> {
+async fn read_input_code(available_currencies: &mut Option<std::collections::HashMap<String, std::collections::HashMap<String, f64>>>) -> Result<(), reqwest::Error> {
 
     let mut cur_from = String::new();
     loop {
@@ -105,24 +113,33 @@ async fn read_input_code(available_currencies: Option<std::collections::HashMap<
         }
     }
     
-
     if let Some(currency_rates) = available_currencies {
+
+        // for (key, _value) in currency_rates.clone() {
+        //     println!("Key: {}", key);
+        // }
+
+        //nie dodaje sie klucz
+
+        // if currency_rates.contains_key(&cur_from) {
+        //     println!("JEST");
+        // } else {
+        //     println!("nie ma :(");
+        // }
+
         let num = read_value();
         if num != -1.0 {
-            if !currency_rates.is_empty() {
-                match (currency_rates.get(&cur_from), currency_rates.get(&cur_to)) {
-                    (Some(rate_from), Some(rate_to)) => {
-                        if *rate_from == 1.0 {
-                            non_api_convert(cur_from.to_string(), cur_to.to_string(), num, *rate_to);
-                        } else {
-                            api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
-                        }
-                    }
-                    (None, _) => println!("Invalid input currency code: {}", cur_from),
-                    (_, None) => println!("Invalid output currency code: {}", cur_to),
+            if let Some(rate_from) = currency_rates.get(&cur_from) {
+                if let Some(rate_to) = rate_from.get(&cur_to) {
+                    non_api_convert(cur_from.to_string(), cur_to.to_string(), num, *rate_to);
+                    println!("got it without api!");
+                } else {
+                    api_convert(cur_from.to_string(), cur_to.to_string(), num, currency_rates).await?;
+                    println!("got it with api 1 :(");
                 }
             } else {
-                api_convert(cur_from.to_string(), cur_to.to_string(), num).await?;
+                api_convert(cur_from.to_string(), cur_to.to_string(), num, currency_rates).await?;
+                println!("got it with api 2 :(");
             }
         }
     }
@@ -135,7 +152,7 @@ fn non_api_convert(from: String, to: String, amount: f64, rate: f64) {
 }
 
 
-async fn api_convert(from: String, to: String, amount: f64) -> Result<(), reqwest::Error> {
+async fn api_convert(from: String, to: String, amount: f64, map: &mut std::collections::HashMap<String, std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error> {
 
     let base = "https://v6.exchangerate-api.com/v6/a3f798577a713b0309d32d40/latest/".to_string();
 
@@ -145,10 +162,43 @@ async fn api_convert(from: String, to: String, amount: f64) -> Result<(), reqwes
     loop {
         let response = reqwest::Client::new().get(&link).send().await;
 
+        
+
         match response {
             Ok(res) => {
                 if res.status().is_success() {
+
+                    // if let Some(inner_map) = map.as_ref().and_then(|m| m.get(&from)) {
+                    //     println!("inside, no need to add, can call non_api function");
+
+                    // } else {
+                    //     println!("not inside, gotta add it to the map");
+                    //     let mut new_map: std::collections::HashMap<String, std::collections::HashMap<String, f64>> = std::collections::HashMap::new();
+                    //     map.insert(new_map);
+                    // }
+
+                    
                     let body: ExchangeRates = res.json().await?;
+
+
+                    let _ = map.insert(from.clone(), body.conversion_rates.clone());
+
+                    // println!("Inserted {} exchange hashmap", from.clone());
+
+                    
+                    // if let Some(m) = map.as_mut() {
+                    //     for (key, _inner_map) in m {
+                    //         println!("Outer Key: {}", key);
+                    //     }
+                    // }
+
+
+
+                    
+
+                    
+                    
+
                     if let Some(rate) = body.conversion_rates.get(&to) {
                         println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount*rate, &to);
                         break;
@@ -195,7 +245,7 @@ async fn api_convert(from: String, to: String, amount: f64) -> Result<(), reqwes
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
 
-    let mut curs: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+    let mut curs: Option<std::collections::HashMap<String, std::collections::HashMap<String, f64>>> = Some(std::collections::HashMap::new());
 
     loop {
         println!("------------------------------- MENU -------------------------------");
@@ -218,10 +268,11 @@ async fn main() -> Result<(), reqwest::Error> {
 
         match m_value {
             0 => {
-                curs = display_currencies().await?;
+                //curs = Some(display_currencies().await?);
+                display_currencies(&mut curs).await?;
             }
             1 => {
-                read_input_code(Some(curs.clone())).await?;
+                read_input_code(&mut curs).await?;
             }
             2 => {
                 println!("Exiting program!");
@@ -229,6 +280,12 @@ async fn main() -> Result<(), reqwest::Error> {
             }
             _ => {
                 println!("Input isn't a valid menu option");
+            }
+        }
+        
+        if let Some(m) = &curs {
+            for (key, _inner_map) in m {
+                println!("Keys after one loop: {}", key);
             }
         }
     }
