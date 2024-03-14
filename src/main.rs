@@ -7,25 +7,25 @@ use tokio::time::sleep; // Importing sleep function from tokio for asynchronous 
 
 static API_KEY: &str = "a3f798577a713b0309d32d40";
 
-#[derive(Debug, Serialize, Deserialize)] // Implementing Serialize and Deserialize traits for ExchangeRates struct.
+#[derive(Debug, Serialize, Deserialize)]
 struct ExchangeRates {
     conversion_rates: std::collections::HashMap<String, f64>, // Struct representing exchange rates.
 }
 
-#[derive(Debug, Serialize, Deserialize)] // Implementing Serialize and Deserialize traits for ErrorResponse struct.
+#[derive(Debug, Serialize, Deserialize)]
 struct ErrorResponse {
-    result: String, // Result message.
-    #[serde(rename = "error-type")]
-    error_type: String, // Error type message.
+    result: String,
+    #[serde(rename = "error-type")] //Struct representing error response
+    error_type: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)] // Implementing Serialize and Deserialize traits for SupportedList struct.
+#[derive(Debug, Serialize, Deserialize)]
 struct SupportedList {
     supported_codes: Vec<Vec<String>>, // Struct representing supported currency codes.
 }
 
+// Function to display available currencies and their exchange rates.
 async fn display_currencies(map: &mut std::collections::HashMap<String, std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error> {
-    // Function to display available currencies and their exchange rates.
     if let Some(usd_map) = map.get("USD") { // Checking if USD exchange rates are already available.
         for (key, value) in usd_map {
             println!("Code: {}, Rate: 1 USD is {} {}", key, value, key); // Printing currency code and exchange rate.
@@ -49,17 +49,18 @@ async fn display_currencies(map: &mut std::collections::HashMap<String, std::col
             }
             Err(err) => {
                 println!("");
-                eprintln!("Failed to parse currencies: {}", err); // Printing error if failed to parse currencies.
+                eprintln!("Failed to parse currencies: {}", err);
             }
         }
     }
     Ok(())
 }
 
+
+// Function to read a floating-point value from the user.
 fn read_value() -> f64 {
-    // Function to read a floating-point value from the user.
     print!("Value to be converted (e.g., 14.26): ");
-    io::stdout().flush().expect("Failed to flush"); // Flushing stdout.
+    io::stdout().flush().expect("Failed to flush");
     let mut input_line = String::new(); // Creating a new string to store user input.
     io::stdin()
         .read_line(&mut input_line)
@@ -70,7 +71,7 @@ fn read_value() -> f64 {
         .expect("Input not a valid floating-point number"); // Parsing user input to a floating-point number.
     if value <= 0.0 {
         println!("");
-        println!("Value less than or equal to 0, enter a valid value"); // Printing error message for invalid input.
+        println!("Value less than or equal to 0, enter a valid value");
         return -1.0;
     } else {
         return value;
@@ -78,7 +79,6 @@ fn read_value() -> f64 {
 }
 
 fn is_uppercase(input: &str) -> bool {
-    // Function to check if a string is uppercase.
     input.chars().all(char::is_uppercase) // Checking if all characters in the string are uppercase.
 }
 
@@ -134,12 +134,12 @@ async fn read_input_code(available_currencies: &mut std::collections::HashMap<St
     Ok(())
 }
 
+// Function to perform conversion without using API.
 fn non_api_convert(from: String, to: String, amount: f64, rate: f64) {
-    // Function to perform conversion without using API.
     println!("");
     println!("");
     println!("#####################################################################");
-    println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount * rate, &to); // Printing conversion result.
+    println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount * rate, &to);
     println!("#####################################################################");
 
 
@@ -147,7 +147,7 @@ fn non_api_convert(from: String, to: String, amount: f64, rate: f64) {
 
 async fn api_convert(from: String, to: String, amount: f64, map: &mut std::collections::HashMap<String, std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error> {
     // Function to perform conversion using API.
-    let base = "https://v6.exchangerate-api.com/v6/".to_string(); // API base URL.
+    let base = "https://v6.exchangerate-api.com/v6/".to_string();
     let end = "/latest/".to_string();
 
     let link = base + &API_KEY + &end + &from; // Creating API endpoint URL.
@@ -173,7 +173,7 @@ async fn api_convert(from: String, to: String, amount: f64, map: &mut std::colle
                         break; // Exiting loop.
                     } else {
                         println!("");
-                        println!("Error: Invalid output currency: {}", &to); // Printing error message for invalid output currency.
+                        println!("Error: Invalid output currency: {}", &to);
                         println!("");
                         break; // Exiting loop.
                     }
@@ -202,7 +202,7 @@ async fn api_convert(from: String, to: String, amount: f64, map: &mut std::colle
             }
             Err(_err) => {
                 println!("");
-                eprintln!("Error: Network error"); // Printing network error message.
+                eprintln!("Error: Network error");
                 return Ok(());
             }
         }
@@ -211,8 +211,7 @@ async fn api_convert(from: String, to: String, amount: f64, map: &mut std::colle
 }
 
 #[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
-    // Main function for currency conversion program.
+async fn main() -> Result<(), reqwest::Error> { 
     let mut curs: std::collections::HashMap<String, std::collections::HashMap<String, f64>> = std::collections::HashMap::new(); // Initializing HashMap to store exchange rates.
 
     loop {
@@ -223,12 +222,12 @@ async fn main() -> Result<(), reqwest::Error> {
         println!("1 - Enter base currency (the one you convert from)");
         println!("2 - Exit program");
         print!("Enter option: ");
-        io::stdout().flush().expect("Failed to flush menu"); // Flushing stdout.
+        io::stdout().flush().expect("Failed to flush menu");
 
         let mut menu = String::new(); // Initializing string to store menu option.
         io::stdin()
             .read_line(&mut menu)
-            .expect("Failed to read menu option"); // Reading menu option.
+            .expect("Failed to read menu option");
 
         let m_value: i32 = menu
             .trim()
@@ -244,21 +243,15 @@ async fn main() -> Result<(), reqwest::Error> {
             }
             2 => {
                 println!("");
-                println!("Exiting program!"); // Printing exit message.
+                println!("Exiting program!");
                 println!("");
-                break; // Exiting loop.
+                break;
             }
             _ => {
                 println!("");
                 println!("Input isn't a valid menu option"); // Printing error message for invalid menu option.
             }
         }
-
-        //debug purpose code below, display all cached exchanged rates to optimize and reduce api calls
-
-        // for(key, _value) in &curs {
-        //     println!("{:?}", key)
-        // }
     }
     Ok(())
 }
