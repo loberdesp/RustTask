@@ -124,7 +124,11 @@ async fn read_input_code(available_currencies: &mut std::collections::HashMap<St
 
 fn non_api_convert(from: String, to: String, amount: f64, rate: f64) {
     // Function to perform conversion without using API.
+    println!("");
+    println!("#####################################################################");
     println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount * rate, &to); // Printing conversion result.
+    println!("#####################################################################");
+    println!("");
 }
 
 async fn api_convert(from: String, to: String, amount: f64, map: &mut std::collections::HashMap<String, std::collections::HashMap<String, f64>>) -> Result<(), reqwest::Error> {
@@ -142,7 +146,11 @@ async fn api_convert(from: String, to: String, amount: f64, map: &mut std::colle
                     let body: ExchangeRates = res.json().await?; // Parsing JSON response into ExchangeRates struct.
                     let _ = map.insert(from.clone(), body.conversion_rates.clone()); // Inserting exchange rates into the map.
                     if let Some(rate) = body.conversion_rates.get(&to) { // Checking if exchange rate for output currency is available.
+                        println!("");
+                        println!("#####################################################################");
                         println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount * rate, &to); // Printing conversion result.
+                        println!("#####################################################################");
+                        println!("");
                         break; // Exiting loop.
                     } else {
                         println!("Error: Invalid output currency: {}", &to); // Printing error message for invalid output currency.
@@ -216,7 +224,7 @@ async fn main() -> Result<(), reqwest::Error> {
                 println!("Input isn't a valid menu option"); // Printing error message for invalid menu option.
             }
         }
-        
+
         //debug purpose code below, display all cached exchanged rates to optimize and reduce api calls
 
         // for(key, _value) in &curs {
