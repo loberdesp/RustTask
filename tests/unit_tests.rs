@@ -26,3 +26,10 @@ fn test_validate_read_value_negative() {
     let result = validate_read_value(input);
     assert_eq!(result, -1.0);
 }
+
+#[test]
+#[should_panic(expected = "Input not a valid floating-point number")]
+fn test_validate_read_value_invalid_input() {
+    let input = "abc".to_string();
+    validate_read_value(input);
+}

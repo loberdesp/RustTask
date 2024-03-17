@@ -10,19 +10,19 @@ pub mod converter_module {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct ExchangeRates {
-        conversion_rates: std::collections::HashMap<String, f64>, // Struct representing exchange rates.
+        pub conversion_rates: std::collections::HashMap<String, f64>, // Struct representing exchange rates.
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct ErrorResponse {
-        result: String,
+        pub result: String,
         #[serde(rename = "error-type")] //Struct representing error response
-        error_type: String,
+        pub error_type: String,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct SupportedList {
-        supported_codes: Vec<Vec<String>>, // Struct representing supported currency codes.
+        pub supported_codes: Vec<Vec<String>>, // Struct representing supported currency codes.
     }
 
     // Function to display available currencies and their exchange rates.
