@@ -79,3 +79,21 @@ Example:
 3. You convert GBP to BIF
 4. GBP is also added to hashmap
 5. You want to convert USD to AWG, since USD was called and it's values are stored in memory program won't call API and instead it will get them from hashmap
+
+### Docker
+
+You need [docker hub](https://hub.docker.com) installed on your machine, for testing in docker environment you have to use two commands:
+
+1. Build docker image
+
+```
+docker build -t converter_test_img .
+```
+
+2. Run docker image for testing
+
+```
+docker run -t converter_test_img
+```
+
+3. Our image should pop up in docker and we should be able to control it with buttons in docker hub

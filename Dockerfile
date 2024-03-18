@@ -1,4 +1,4 @@
-FROM rust:latest
+FROM rust:latest as builder
 
 WORKDIR /RustTask
 
@@ -6,4 +6,10 @@ COPY . .
 
 RUN cargo build --release
 
-CMD cargo run
+FROM rust:latest
+
+WORKDIR /RustTask
+
+COPY --from=builder /RustTask .
+
+CMD ["cargo", "test"]
