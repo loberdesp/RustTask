@@ -6,9 +6,8 @@ async fn main() -> Result<(), reqwest::Error> {
     let mut curs: std::collections::HashMap<String, std::collections::HashMap<String, f64>> = std::collections::HashMap::new(); // Initializing HashMap to store exchange rates.
 
     loop {
-        println!("");
-        println!("");
-        println!("------------------------------- MENU -------------------------------");
+
+        println!("\n\n------------------------------- MENU -------------------------------");
         println!("0 - List all available currencies and exchange rates (for US dollar)");
         println!("1 - Enter base currency (the one you convert from)");
         println!("2 - Exit program");
@@ -33,14 +32,11 @@ async fn main() -> Result<(), reqwest::Error> {
                 read_input_code(&mut curs).await?; // Reading input currency codes and performing conversion.
             }
             2 => {
-                println!("");
-                println!("Exiting program!");
-                println!("");
+                println!("\nExiting program!\n");
                 break;
             }
             _ => {
-                println!("");
-                println!("Input isn't a valid menu option"); // Printing error message for invalid menu option.
+                println!("\nInput isn't a valid menu option"); // Printing error message for invalid menu option.
             }
         }
     }

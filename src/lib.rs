@@ -49,8 +49,7 @@ pub mod converter_module {
                     }
                 }
                 Err(err) => {
-                    println!("");
-                    eprintln!("Failed to parse currencies: {}", err);
+                    eprintln!("\nFailed to parse currencies: {}", err);
                 }
             }
         }
@@ -80,8 +79,7 @@ pub mod converter_module {
             .parse()
             .expect("Input not a valid floating-point number"); // Parsing user input to a floating-point number.
         if value <= 0.0 {
-            println!("");
-            println!("Value less than or equal to 0, enter a valid value");
+            println!("\nValue less than or equal to 0, enter a valid value");
             return -1.0;
         } else {
             return value;
@@ -106,9 +104,7 @@ pub mod converter_module {
             if is_uppercase(&cur_from) { // Checking if input currency code is uppercase.
                 break; // Exiting loop if input is valid.
             } else {
-                println!("");
-                println!("Invalid input. It should only contain uppercase characters!"); // Printing error message for invalid input.
-                println!("");
+                println!("\nInvalid input. It should only contain uppercase characters!\n"); // Printing error message for invalid input.
                 cur_from.clear(); // Clearing the input string.
             }
         }
@@ -122,9 +118,7 @@ pub mod converter_module {
             if is_uppercase(&cur_to) { // Checking if output currency code is uppercase.
                 break; // Exiting loop if input is valid.
             } else {
-                println!("");
-                println!("Invalid input. It should only contain uppercase characters!"); // Printing error message for invalid input.
-                println!("");
+                println!("\nInvalid input. It should only contain uppercase characters!\n"); // Printing error message for invalid input.
                 cur_to.clear(); // Clearing the input string.
             }
         }
@@ -146,9 +140,7 @@ pub mod converter_module {
 
     // Function to perform conversion without using API.
     pub fn non_api_convert(from: String, to: String, amount: f64, rate: f64) {
-        println!("");
-        println!("");
-        println!("#####################################################################");
+        println!("\n\n#####################################################################");
         println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount * rate, &to);
         println!("#####################################################################");
 
@@ -173,18 +165,14 @@ pub mod converter_module {
                         let body: ExchangeRates = res.json().await?; // Parsing JSON response into ExchangeRates struct.
                         let _ = map.insert(from.clone(), body.conversion_rates.clone()); // Inserting exchange rates into the map.
                         if let Some(rate) = body.conversion_rates.get(&to) { // Checking if exchange rate for output currency is available.
-                            println!("");
-                            println!("");
-                            println!("#####################################################################");
+                            println!("\n\n#####################################################################");
                             println!("{:.2} {} exchanged with {} rate is {:.2} {}", amount, &from, rate, amount * rate, &to); // Printing conversion result.
                             println!("#####################################################################");
 
 
                             break; // Exiting loop.
                         } else {
-                            println!("");
-                            println!("Error: Invalid output currency: {}", &to);
-                            println!("");
+                            println!("\nError: Invalid output currency: {}\n", &to);
                             break; // Exiting loop.
                         }
                     } else if res.status() == reqwest::StatusCode::TOO_MANY_REQUESTS { // Checking if rate limit exceeded.
@@ -211,8 +199,7 @@ pub mod converter_module {
                     }
                 }
                 Err(_err) => {
-                    println!("");
-                    eprintln!("Error: Network error");
+                    eprintln!("\nError: Network error");
                     return Ok(());
                 }
             }
