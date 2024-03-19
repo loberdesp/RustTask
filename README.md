@@ -82,6 +82,9 @@ Example:
 
 ### Docker
 
+We will build docker image and run it, it supports running basic unit tests
+
+
 You need [docker hub](https://hub.docker.com) installed on your machine, for testing in docker environment you have to use two commands:
 
 1. Build docker image
@@ -96,4 +99,4 @@ docker build -t converter_test_img .
 docker run -t converter_test_img
 ```
 
-3. Our image should pop up in docker and we should be able to control it with buttons in docker hub
+3. Our image should pop up in docker and we should be able to control it with buttons
